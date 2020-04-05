@@ -1,0 +1,213 @@
+################################################################################
+#                                         
+# |              |    |         |         
+# |---.,---.,---.|---.|    ,---.|--- ,---.
+# |   |,---|`---.|   ||    |---'|    `---.
+# `---'`---^`---'`   '`---'`---'`---'`---'
+#
+#                                        
+# Bashlets -- A modular extensible toolbox for Bash
+#
+# Copyright (c) 2014-5 Roberto Reale
+# 
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+# 
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+################################################################################
+
+
+# NOTE: requires curl
+
+source bashlets marshal/uneval
+
+
+#@public
+function bashlets::web::client::webdav::get_handler()
+{
+    $BASHLETS_NAMESPACE uneval create
+}
+
+#@public
+function bashlets::web::client::webdav::release_handler()
+{
+    :
+}
+
+#@public
+function bashlets::web::client::webdav::get_param()
+{
+    local handler="$1"
+    local key="$2"
+
+    [[ -n $handler && -n $key ]] || return
+
+    echo "$($BASHLETS_NAMESPACE uneval get_by_key "$handler" "$key")"
+}
+
+#@public
+function bashlets::web::client::webdav::set_param()
+{
+    local handler="$1"
+    local key="$2"
+    local value="$3"
+
+    [[ -n $handler && -n $key ]] || return
+
+    $BASHLETS_NAMESPACE uneval add_pair "$handler" "$key" "$value"
+}
+
+#@public
+function bashlets::web::client::webdav::get_base_uri()
+{
+    local handler="$1"
+    bashlets::web::client::webdav::get_param "$handler" base_uri
+}
+
+#@public
+function bashlets::web::client::webdav::set_base_uri()
+{
+    local handler="$1"
+    local base_uri="$2"
+    bashlets::web::client::webdav::set_param "$handler" "base_uri" "$base_uri"
+}
+
+#@public
+function bashlets::web::client::webdav::get_password()
+{
+    local handler="$1"
+    bashlets::web::client::webdav::get_param "$handler" password
+}
+
+#@public
+function bashlets::web::client::webdav::set_password()
+{
+    local handler="$1"
+    local password="$2"
+    bashlets::web::client::webdav::set_param "$handler" "password" "$password"
+}
+
+#@public
+function bashlets::web::client::webdav::get_username()
+{
+    local handler="$1"
+    bashlets::web::client::webdav::get_param "$handler" username
+}
+
+#@public
+function bashlets::web::client::webdav::set_username()
+{
+    local handler="$1"
+    local username="$2"
+    bashlets::web::client::webdav::set_param "$handler" "username" "$username"
+}
+
+
+# Returns true if the given target is a file.
+
+#@public
+function bashlets::web::client::webdav::isfile()
+{
+    local handler="$1"
+	local path="$2"
+	local target="$3"
+	local base_uri="$(bashlets::web::client::webdav::get_base_uri "$handler")"
+	local username="$(bashlets::web::client::webdav::get_username "$handler")"
+	local password="$(bashlets::web::client::webdav::get_password "$handler")"
+
+	curl -m 1 -s                               \
+		-u "$username:$password"               \
+		-X HEAD                                \
+		"$base_uri/$path/$target"
+}
+
+# Creates a resource. 
+
+#@public
+function bashlets::web::client::webdav::create()
+{
+    local handler="$1"
+	local target="$2"
+	local base_uri="$(bashlets::web::client::webdav::get_base_uri "$handler")"
+	local username="$(bashlets::web::client::webdav::get_username "$handler")"
+	local password="$(bashlets::web::client::webdav::get_password "$handler")"
+
+	curl -s                                    \
+		-u "$username:$password"               \
+		-X MKCOL                               \
+		"$base_uri/$target"
+}
+
+# Touches a resource.
+
+#@public
+function bashlets::web::client::webdav::touch()
+{
+    local handler="$1"
+	local path="$2"
+	local target="$3"
+	local base_uri="$(bashlets::web::client::webdav::get_base_uri "$handler")"
+	local username="$(bashlets::web::client::webdav::get_username "$handler")"
+	local password="$(bashlets::web::client::webdav::get_password "$handler")"
+
+	curl -s                                    \
+		-u "$username:$password"               \
+		-X PUT                                 \
+		-H "Content-Length: 0 "                \
+		"$base_uri/$path/$target"
+}
+
+# Copies a resource.
+
+#@public
+function bashlets::web::client::webdav::copy()
+{
+    local handler="$1"
+	local source="$2"
+	local target="$3"
+	local base_uri="$(bashlets::web::client::webdav::get_base_uri "$handler")"
+	local username="$(bashlets::web::client::webdav::get_username "$handler")"
+	local password="$(bashlets::web::client::webdav::get_password "$handler")"
+
+	curl -s                                    \
+		-u "$username:$password"               \
+		-X COPY                                \
+		-H "Destination: $base_uri/$target"    \
+		"$base_uri/$source"
+}
+
+# Moves a resource.
+
+#@public
+function bashlets::web::client::webdav::move()
+{
+    local handler="$1"
+	local source="$2"
+	local target="$3"
+	local base_uri="$(bashlets::web::client::webdav::get_base_uri "$handler")"
+	local username="$(bashlets::web::client::webdav::get_username "$handler")"
+	local password="$(bashlets::web::client::webdav::get_password "$handler")"
+
+	curl -s                                    \
+		-u "$username:$password"               \
+		-X MOVE                                \
+		-H "Destination: $base_uri/$target"    \
+		"$base_uri/$source"
+}
+
+
+# ex: ts=4 sw=4 et filetype=sh noexpandtab
